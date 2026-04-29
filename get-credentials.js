@@ -64,7 +64,7 @@ function startCatcher(redirectUri) {
   const codePromise = new Promise((res, rej) => { resolveCode = res; rejectCode = rej })
   const server = createServer((req, res) => {
     const full = new URL(req.url, `http://${req.headers.host}`)
-    res.writeHead(200, { 'Content-Type': 'text/html' })
+    res.writeHead(200, { 'Content-Type': 'text/html', 'Connection': 'close' })
     res.end('<html><body><h3>OAuth code received. You can close this tab.</h3></body></html>')
     const code = full.searchParams.get('code')
     const err  = full.searchParams.get('error')
@@ -129,6 +129,7 @@ async function getAuthCode() {
     return code
   } finally {
     await browser.close()
+    catcher.server.closeAllConnections?.()
     catcher.server.close()
   }
 }
@@ -188,4 +189,6 @@ async function main() {
   console.log(`  exp:   ${credentials.expiresIn}s`)
 }
 
-main().catch(err => { console.error(`Fatal: ${err.message}`); process.exit(1) })
+main()
+  .then(() => process.exit(0))
+  .catch(err => { console.error(`Fatal: ${err.message}`); process.exit(1) })

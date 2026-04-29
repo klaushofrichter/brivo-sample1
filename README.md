@@ -19,7 +19,9 @@ Two scripts:
 
 - Node.js 18+ (uses built-in `fetch`)
 - An EEN developer account and an OAuth client (`CLIENT_ID` / `CLIENT_SECRET`)
-  with `http://127.0.0.1:3333` registered as a redirect URI
+  with `http://127.0.0.1:3333` registered as a redirect URI. To create one, go
+  to [https://developer.eagleeyenetworks.com/page/my-application](https://developer.eagleeyenetworks.com/page/my-application),
+  log in with your EEN credentials, and create a new OAuth Application.
 - A test user with `vms.all` scope
 
 ## Setup
