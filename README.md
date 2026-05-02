@@ -4,7 +4,7 @@ Minimal Node.js sample that authenticates to the
 [Eagle Eye Networks](https://developer.eagleeyenetworks.com/) API using OAuth 2.0
 and lists the cameras on the account.
 
-Two scripts:
+Three scripts:
 
 - **`get-credentials.js`** — drives the EEN OAuth login in a headless Chromium
   (via Playwright), captures the redirect `?code=…`, and exchanges it for an
@@ -14,6 +14,10 @@ Two scripts:
   `get-credentials.js` first if missing) and calls
   `GET {httpsBaseUrl}/api/v3.0/cameras` with the bearer token, printing a
   compact list of cameras.
+- **`list-users.js`** — reads `test-credentials.json` (runs
+  `get-credentials.js` first if missing) and calls
+  `GET {httpsBaseUrl}/api/v3.0/users` with the bearer token, printing a
+  compact list of account users.
 
 ## Prerequisites
 
@@ -50,6 +54,7 @@ cp .env.example .env
 ```sh
 npm run credentials   # one-time login → test-credentials.json
 npm run cameras       # list cameras
+npm run users         # list users
 ```
 
 Example output:
@@ -59,6 +64,10 @@ Found 3 camera(s):
   1005963a  Klaus Cam 1 - Backyard Right
   100f030c  Klaus Cam 2 - Backyard Left
   1003e46b  Klaus Cam 3 - Direct
+
+Found 2 user(s):
+  abc123  Jane Doe  <jane.doe@example.com>  [active]
+  def456  John Smith  <john.smith@example.com>  [active]
 ```
 
 ## How it works
@@ -74,6 +83,10 @@ Found 3 camera(s):
    `GET {httpsBaseUrl}/api/v3.0/cameras?pageSize=100` with
    `Authorization: Bearer <accessToken>` and prints `id  name` for each camera
    in the response.
+4. `list-users.js` sends
+   `GET {httpsBaseUrl}/api/v3.0/users?pageSize=100` with
+   `Authorization: Bearer <accessToken>` and prints `id  name  email  status`
+   for each user in the response.
 
 ## Files
 
@@ -81,6 +94,7 @@ Found 3 camera(s):
 | --- | --- |
 | `get-credentials.js` | OAuth login + token exchange |
 | `list-cameras.js` | Camera listing |
+| `list-users.js` | User listing |
 | `.env.example` | Template for local `.env` |
 | `.env` | **Not committed** — your real credentials |
 | `test-credentials.json` | **Not committed** — generated access token |

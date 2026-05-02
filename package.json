@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "credentials": "node get-credentials.js",
-    "cameras": "node list-cameras.js"
+    "cameras": "node list-cameras.js",
+    "users": "node list-users.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

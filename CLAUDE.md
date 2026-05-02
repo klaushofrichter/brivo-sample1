@@ -9,6 +9,7 @@ npm install
 npx playwright install chromium     # one-time; required for get-credentials.js
 npm run credentials                 # OAuth login → writes test-credentials.json
 npm run cameras                     # GET /api/v3.0/cameras using saved token
+npm run users                       # GET /api/v3.0/users using saved token
 ```
 
 There is no test suite, linter, or build step. Node 18+ is required (uses built-in `fetch`).
