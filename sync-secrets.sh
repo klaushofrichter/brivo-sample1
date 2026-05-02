@@ -48,7 +48,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   in_filter "$key" || continue
 
   printf 'setting %s ... ' "$key"
-  printf '%s' "$val" | gh secret set "$key" --body -
+  printf '%s' "$val" | gh secret set "$key"
   count=$((count + 1))
 done < "$ENV_FILE"
 

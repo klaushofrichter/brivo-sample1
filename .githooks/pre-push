@@ -34,6 +34,6 @@ if [[ -z "$access_token" || -z "$base_url" ]]; then
 fi
 
 echo "[pre-push] syncing ACCESS_TOKEN and HTTPS_BASE_URL to GitHub repo secrets"
-printf '%s' "$access_token" | gh secret set ACCESS_TOKEN --body -
-printf '%s' "$base_url"     | gh secret set HTTPS_BASE_URL --body -
+printf '%s' "$access_token" | gh secret set ACCESS_TOKEN
+printf '%s' "$base_url"     | gh secret set HTTPS_BASE_URL
 echo "[pre-push] done"

@@ -21,14 +21,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Debug env vars
-        run: |
-          echo "ACCESS_TOKEN bytes: $(printf '%s' "$ACCESS_TOKEN" | wc -c)"
-          echo "HTTPS_BASE_URL bytes: $(printf '%s' "$HTTPS_BASE_URL" | wc -c)"
-          echo "HTTPS_BASE_URL starts-with-https: $([[ "$HTTPS_BASE_URL" == https://* ]] && echo yes || echo no)"
-          echo "HTTPS_BASE_URL hex first 10 bytes:"
-          printf '%s' "$HTTPS_BASE_URL" | head -c 10 | xxd
-
       - name: Run list-cameras.js and verify cameras present
         run: |
           set -o pipefail
