@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Refresh local OAuth credentials and sync the access token + base URL to
+# GitHub repo secrets so the list-cameras PR workflow can use them without
+# running the OAuth flow itself.
+#
+# Enable once with:
+#   git config core.hooksPath .githooks
+
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+creds_file="$repo_root/test-credentials.json"
+
+# Only refresh / sync when pushing the main branch — that's what gets PR'd
+# into production. Skip for other branches to avoid noisy OAuth runs.
+need_sync=
+while read -r local_ref _ remote_ref _; do
+  [[ "$local_ref" == "refs/heads/main" || "$remote_ref" == "refs/heads/main" ]] && need_sync=1
+done
+[[ -z "$need_sync" ]] && exit 0
+
+if [[ ! -f "$creds_file" ]]; then
+  echo "[pre-push] no $creds_file — running get-credentials.js"
+  node get-credentials.js
+fi
+
+access_token=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('$creds_file','utf8')).accessToken||'')")
+base_url=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('$creds_file','utf8')).httpsBaseUrl||'')")
+
+if [[ -z "$access_token" || -z "$base_url" ]]; then
+  echo "[pre-push] accessToken or httpsBaseUrl missing in $creds_file" >&2
+  exit 1
+fi
+
+echo "[pre-push] syncing ACCESS_TOKEN and HTTPS_BASE_URL to GitHub repo secrets"
+printf '%s' "$access_token" | gh secret set ACCESS_TOKEN --body -
+printf '%s' "$base_url"     | gh secret set HTTPS_BASE_URL --body -
+echo "[pre-push] done"

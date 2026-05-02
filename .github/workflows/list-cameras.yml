@@ -8,11 +8,8 @@ jobs:
   list-cameras:
     runs-on: ubuntu-latest
     env:
-      TEST_USER: ${{ secrets.TEST_USER }}
-      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-      CLIENT_ID: ${{ secrets.CLIENT_ID }}
-      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-      HEADLESS: "true"
+      ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+      HTTPS_BASE_URL: ${{ secrets.HTTPS_BASE_URL }}
 
     steps:
       - uses: actions/checkout@v4
@@ -24,11 +21,13 @@ jobs:
 
       - run: npm ci
 
-      - run: npx playwright install --with-deps chromium
-
       - name: Run list-cameras.js and verify cameras present
         run: |
           set -o pipefail
+          if [[ -z "$ACCESS_TOKEN" || -z "$HTTPS_BASE_URL" ]]; then
+            echo "::error::ACCESS_TOKEN / HTTPS_BASE_URL secrets are not set — run the local pre-push hook to populate them"
+            exit 1
+          fi
           output=$(node list-cameras.js | tee /dev/stderr)
           count=$(printf '%s\n' "$output" | sed -n 's/^Found \([0-9][0-9]*\) camera(s):.*/\1/p')
           if [[ -z "$count" ]]; then

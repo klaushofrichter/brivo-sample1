@@ -33,3 +33,9 @@ The `REDIRECT_URI` must be registered on the OAuth client in the EEN developer p
 
 - The OAuth catcher server in `get-credentials.js` must drop sockets and the script must `process.exit(0)` on success — Playwright + keep-alive sockets otherwise hold the event loop open ~1 minute after the token is written. See the `finally` block in `getAuthCode()` and the explicit exit in `main().then(...)`.
 - `test-credentials.json` and `.env` are gitignored and contain secrets. Access tokens expire in ~24 hours; rerun `npm run credentials` to refresh.
+
+## CI / GitHub secrets
+
+The list-cameras workflow on PRs to `production` does **not** run OAuth in CI (EEN's auth endpoint rejects the GitHub Actions IP ranges). Instead, `list-cameras.js` reads `ACCESS_TOKEN` and `HTTPS_BASE_URL` from env if set, falling back to `test-credentials.json` locally.
+
+The `.githooks/pre-push` hook (enabled via `git config core.hooksPath .githooks`) refreshes those two repo secrets from your local `test-credentials.json` whenever you push `main`, so the PR workflow always has a fresh token. Tokens expire in ~24h; pushing again refreshes them.
