@@ -16,22 +16,30 @@ import { spawnSync } from 'child_process'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const CREDS_FILE = resolve(__dirname, 'test-credentials.json')
 
-function ensureCredentials() {
-  if (existsSync(CREDS_FILE)) return
-  console.log('test-credentials.json not found — running get-credentials.js...')
-  const r = spawnSync(process.execPath, [resolve(__dirname, 'get-credentials.js')], {
-    stdio: 'inherit'
-  })
-  if (r.status !== 0) {
-    console.error('get-credentials.js failed')
-    process.exit(r.status || 1)
+function loadCredentials() {
+  if (process.env.ACCESS_TOKEN && process.env.HTTPS_BASE_URL) {
+    return {
+      accessToken: process.env.ACCESS_TOKEN,
+      httpsBaseUrl: process.env.HTTPS_BASE_URL
+    }
   }
+  if (!existsSync(CREDS_FILE)) {
+    console.log('test-credentials.json not found — running get-credentials.js...')
+    const r = spawnSync(process.execPath, [resolve(__dirname, 'get-credentials.js')], {
+      stdio: 'inherit'
+    })
+    if (r.status !== 0) {
+      console.error('get-credentials.js failed')
+      process.exit(r.status || 1)
+    }
+  }
+  return JSON.parse(readFileSync(CREDS_FILE, 'utf8'))
 }
 
 async function listCameras() {
-  const creds = JSON.parse(readFileSync(CREDS_FILE, 'utf8'))
-  if (!creds.accessToken) throw new Error('accessToken missing from test-credentials.json')
-  if (!creds.httpsBaseUrl) throw new Error('httpsBaseUrl missing from test-credentials.json')
+  const creds = loadCredentials()
+  if (!creds.accessToken) throw new Error('accessToken missing (env or test-credentials.json)')
+  if (!creds.httpsBaseUrl) throw new Error('httpsBaseUrl missing (env or test-credentials.json)')
 
   const url = `${creds.httpsBaseUrl}/api/v3.0/cameras?pageSize=100`
   const res = await fetch(url, {
@@ -59,7 +67,6 @@ async function listCameras() {
 }
 
 async function main() {
-  ensureCredentials()
   await listCameras()
 }
 

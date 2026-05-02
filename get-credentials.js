@@ -102,7 +102,7 @@ async function getAuthCode() {
 
     const email = page.locator('#authentication--input__email, input[type="email"]').first()
     try {
-      await email.waitFor({ state: 'visible', timeout: 15000 })
+      await email.waitFor({ state: 'visible', timeout: 45000 })
     } catch (e) {
       const url = page.url()
       const body = (await page.content()).slice(0, 800)
@@ -115,7 +115,7 @@ async function getAuthCode() {
     await page.getByRole('button', { name: 'Next' }).click()
 
     const pwd = page.locator('#authentication--input__password, input[type="password"]').first()
-    await pwd.waitFor({ state: 'visible', timeout: 15000 })
+    await pwd.waitFor({ state: 'visible', timeout: 45000 })
     await pwd.fill(TEST_PASSWORD)
 
     await page.locator('#next, button:has-text("Sign in"), button:has-text("Log in")').first().click()
