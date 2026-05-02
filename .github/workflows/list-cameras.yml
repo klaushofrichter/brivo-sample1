@@ -1,0 +1,42 @@
+name: list-cameras
+
+on:
+  pull_request:
+    branches: [production]
+
+jobs:
+  list-cameras:
+    runs-on: ubuntu-latest
+    env:
+      TEST_USER: ${{ secrets.TEST_USER }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+      CLIENT_ID: ${{ secrets.CLIENT_ID }}
+      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      HEADLESS: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run list-cameras.js and verify cameras present
+        run: |
+          set -o pipefail
+          output=$(node list-cameras.js | tee /dev/stderr)
+          count=$(printf '%s\n' "$output" | sed -n 's/^Found \([0-9][0-9]*\) camera(s):.*/\1/p')
+          if [[ -z "$count" ]]; then
+            echo "::error::could not parse camera count from output"
+            exit 1
+          fi
+          if [[ "$count" -lt 1 ]]; then
+            echo "::error::expected at least one camera, got $count"
+            exit 1
+          fi
+          echo "ok: $count camera(s) listed"
