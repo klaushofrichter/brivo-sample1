@@ -39,3 +39,18 @@ jobs:
             exit 1
           fi
           echo "ok: $count camera(s) listed"
+
+      - name: Run list-users.js and verify users present
+        run: |
+          set -o pipefail
+          output=$(node list-users.js | tee /dev/stderr)
+          count=$(printf '%s\n' "$output" | sed -n 's/^Found \([0-9][0-9]*\) user(s):.*/\1/p')
+          if [[ -z "$count" ]]; then
+            echo "::error::could not parse user count from output"
+            exit 1
+          fi
+          if [[ "$count" -lt 1 ]]; then
+            echo "::error::expected at least one user, got $count"
+            exit 1
+          fi
+          echo "ok: $count user(s) listed"
