@@ -10,14 +10,11 @@ Three scripts:
   (via Playwright), captures the redirect `?code=…`, and exchanges it for an
   access token at `https://auth.eagleeyenetworks.com/oauth2/token`. Writes
   `test-credentials.json` with `accessToken`, `refreshToken`, and `httpsBaseUrl`.
-- **`list-cameras.js`** — reads `test-credentials.json` (runs
-  `get-credentials.js` first if missing) and calls
-  `GET {httpsBaseUrl}/api/v3.0/cameras` with the bearer token, printing a
-  compact list of cameras.
-- **`list-users.js`** — reads `test-credentials.json` (runs
-  `get-credentials.js` first if missing) and calls
-  `GET {httpsBaseUrl}/api/v3.0/users` with the bearer token, printing a
-  compact list of account users.
+- **`list-cameras.js`** — reads credentials (see *Credential resolution* below)
+  and calls `GET {httpsBaseUrl}/api/v3.0/cameras` with the bearer token,
+  printing a compact list of cameras.
+- **`list-users.js`** — same credential handling, calls
+  `GET {httpsBaseUrl}/api/v3.0/users` and prints a compact list of account users.
 
 ## Prerequisites
 
@@ -70,6 +67,45 @@ Found 2 user(s):
   def456  John Smith  <john.smith@example.com>  [active]
 ```
 
+## Credential resolution
+
+`list-cameras.js` and `list-users.js` resolve credentials in this order:
+
+1. If both `ACCESS_TOKEN` and `HTTPS_BASE_URL` are set in the environment, use them.
+2. Otherwise, read `test-credentials.json`. If that file is missing, run `get-credentials.js` first to create it.
+
+The env-var path is what CI uses (see *CI / GitHub secrets*); the file path is what you use locally.
+
+## CI / GitHub secrets
+
+Two GitHub Actions workflows live under `.github/workflows/`:
+
+- **`list-cameras.yml`** — runs on PRs targeting `production`. Installs deps and runs `list-cameras.js` using `ACCESS_TOKEN` and `HTTPS_BASE_URL` from repo secrets. Fails the check if no cameras are returned. The `production` branch protection requires this check to pass.
+- **`release.yml`** — runs on push to `production`. Tags as `vYYYY.MM.DD-<short-sha>` and creates a GitHub release with auto-generated notes.
+
+CI does **not** run the OAuth flow itself (EEN's auth endpoint rejects requests when the secrets contain the wrong values, and Playwright in CI is fragile). Instead, a local pre-push hook keeps the two CI secrets fresh.
+
+### Pre-push hook
+
+`.githooks/pre-push` fires when pushing `main`, refreshes `test-credentials.json` if needed (running `get-credentials.js`), and pushes `accessToken` → `ACCESS_TOKEN` and `httpsBaseUrl` → `HTTPS_BASE_URL` as GitHub repo secrets via `gh`.
+
+Enable once per clone:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+Requires `gh` CLI authenticated against the repo.
+
+### `sync-secrets.sh`
+
+Helper that syncs keys from `.env` into GitHub repo secrets:
+
+```sh
+./sync-secrets.sh                       # all keys in .env
+./sync-secrets.sh CLIENT_ID CLIENT_SECRET   # only listed keys
+```
+
 ## How it works
 
 1. `get-credentials.js` opens
@@ -95,6 +131,10 @@ Found 2 user(s):
 | `get-credentials.js` | OAuth login + token exchange |
 | `list-cameras.js` | Camera listing |
 | `list-users.js` | User listing |
+| `sync-secrets.sh` | Push `.env` keys to GitHub repo secrets via `gh` |
+| `.githooks/pre-push` | Refresh + sync `ACCESS_TOKEN` / `HTTPS_BASE_URL` to GitHub when pushing `main` |
+| `.github/workflows/list-cameras.yml` | PR check on `production` |
+| `.github/workflows/release.yml` | Release on push to `production` |
 | `.env.example` | Template for local `.env` |
 | `.env` | **Not committed** — your real credentials |
 | `test-credentials.json` | **Not committed** — generated access token |

@@ -8,7 +8,7 @@
     "cameras": "node list-cameras.js",
     "users": "node list-users.js"
   },
-  "dependencies": {
+  "devDependencies": {
     "dotenv": "^16.4.5",
     "playwright": "^1.48.0"
   }

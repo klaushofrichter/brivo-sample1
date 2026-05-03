@@ -1,26 +1,4 @@
 #!/usr/bin/env node
-/**
- * Obtain EEN credentials directly (no proxy).
- *
- * Flow:
- *   1. Playwright drives the EEN OAuth login in a headless browser.
- *   2. We intercept the redirect to REDIRECT_URI and read the ?code=... param
- *      before the browser actually loads that URL (so no server is needed).
- *   3. We POST to https://auth.eagleeyenetworks.com/oauth2/token with
- *      CLIENT_ID + CLIENT_SECRET to exchange the code for an access token.
- *   4. We write test-credentials.json in the same format as the proxy flow.
- *
- * Required in .env (or env vars):
- *   TEST_USER, TEST_PASSWORD, CLIENT_ID, CLIENT_SECRET
- *
- * Optional:
- *   REDIRECT_URI   default: http://127.0.0.1:3333
- *   SCOPE          default: vms.all
- *   HEADLESS       default: true  (set to 0/false to watch the browser)
- *
- * The REDIRECT_URI must be registered on the CLIENT_ID in the EEN portal.
- */
-
 import { chromium } from 'playwright'
 import { config } from 'dotenv'
 import { resolve, dirname } from 'path'
@@ -153,16 +131,6 @@ async function exchangeCode(code) {
   return JSON.parse(text)
 }
 
-function normalizeBaseUrl(raw) {
-  if (!raw) return undefined
-  if (typeof raw === 'string') return raw
-  if (raw.hostname) {
-    const port = raw.port && raw.port !== 443 ? `:${raw.port}` : ''
-    return `https://${raw.hostname}${port}`
-  }
-  return undefined
-}
-
 async function main() {
   console.log(`Starting OAuth login for ${TEST_USER} (client: ${CLIENT_ID})`)
   console.log(`Redirect URI: ${REDIRECT_URI}  (must be registered on the client)`)
@@ -170,13 +138,12 @@ async function main() {
   console.log('Got authorization code; exchanging for access token...')
   const tok = await exchangeCode(code)
 
-  const baseUrl = normalizeBaseUrl(tok.httpsBaseUrl)
   const credentials = {
     accessToken: tok.access_token || tok.accessToken,
     refreshToken: tok.refresh_token || tok.refreshToken,
     tokenType:   tok.token_type   || tok.tokenType || 'Bearer',
     expiresIn:   tok.expires_in   || tok.expiresIn,
-    httpsBaseUrl: baseUrl,
+    httpsBaseUrl: tok.httpsBaseUrl,
     userEmail: TEST_USER
   }
   if (!credentials.accessToken) throw new Error(`no access token in response: ${JSON.stringify(tok)}`)
