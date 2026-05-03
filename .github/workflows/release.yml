@@ -10,10 +10,11 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
 
       - name: Compute release tag
         id: tag
@@ -21,11 +22,33 @@ jobs:
           tag="v$(date -u +%Y.%m.%d)-${GITHUB_SHA::7}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+      - name: Build release notes
+        run: |
+          tag="${{ steps.tag.outputs.tag }}"
+          prev=$(gh release list --limit 1 --json tagName -q '.[0].tagName // ""')
+
+          notes=$(gh api "repos/$REPO/releases/generate-notes" \
+            -f tag_name="$tag" \
+            -f target_commitish="$GITHUB_SHA" \
+            ${prev:+-f previous_tag_name="$prev"} \
+            --jq '.body')
+
+          if [[ -n "$prev" ]]; then
+            commits=$(gh api "repos/$REPO/compare/$prev...$GITHUB_SHA" \
+              --jq '.commits | map("- " + .sha[0:7] + " " + (.commit.message | split("\n")[0])) | reverse | .[]')
+          else
+            commits=$(gh api "repos/$REPO/commits?sha=$GITHUB_SHA&per_page=100" \
+              --jq 'map("- " + .sha[0:7] + " " + (.commit.message | split("\n")[0])) | .[]')
+          fi
+
+          {
+            printf '%s\n\n' "$notes"
+            printf '## Commits\n\n%s\n' "$commits"
+          } > release-body.md
+
       - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${{ steps.tag.outputs.tag }}" \
             --target "$GITHUB_SHA" \
             --title "${{ steps.tag.outputs.tag }}" \
-            --generate-notes
+            --notes-file release-body.md
